@@ -1,0 +1,91 @@
+#VRML_SIM R2021a utf8
+WorldInfo {
+  info [
+    "The model of the E-puck robot"
+  ]
+  title "E-puck simulation"
+  coordinateSystem "EUN"
+  contactProperties [
+    ContactProperties {
+      forceDependentSlip [
+        0.01
+      ]
+    }
+  ]
+}
+Viewpoint {
+  orientation -0.15234972246350567 -0.9378057910551221 -0.31194528419062434 2.539530651773102
+  position -0.2744426224180118 0.535796844507665 -0.35103770367719744
+  follow "e-puck"
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+  translation 0.14 0 0.205
+  floorSize 0.75 0.75
+  floorAppearance Parquetry {
+    type "light strip"
+  }
+  wallHeight 0.05
+}
+E-puck {
+  translation 0.232 0 0.05
+  rotation 0 1 0 3.141592653589793
+  controller "task_A_controller"
+}
+DEF Sheet Transform {
+  translation 0.14 0.0001 0.205
+  rotation 0 1 0 3.14
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColorMap ImageTexture {
+          url [
+            "textures/sheet_A.jpg"
+          ]
+        }
+        roughness 1
+        metalness 0
+      }
+      geometry Plane {
+        size 0.28 0.41
+      }
+      isPickable FALSE
+    }
+  ]
+}
+DEF Obstacle_1 Solid {
+  translation 0.197 0 0.138
+  children [
+    DEF Obstacle_Cylinder Shape {
+      appearance PBRAppearance {
+        baseColor 1 0.5 0
+        metalness 0
+      }
+      geometry Cylinder {
+        height 0.1
+        radius 0.02
+      }
+    }
+  ]
+  boundingObject USE Obstacle_Cylinder
+}
+DEF Obstacle_2 Solid {
+  translation 0.09 0 0.263
+  children [
+    DEF Obstacle_Cylinder Shape {
+      appearance PBRAppearance {
+        baseColor 1 0.5 0
+        metalness 0
+      }
+      geometry Cylinder {
+        height 0.1
+        radius 0.02
+      }
+    }
+  ]
+  name "solid(1)"
+  boundingObject USE Obstacle_Cylinder
+}

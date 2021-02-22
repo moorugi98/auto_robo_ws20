@@ -1,0 +1,58 @@
+#VRML_SIM R2021a utf8
+WorldInfo {
+  info [
+    "The model of the E-puck robot"
+  ]
+  title "E-puck simulation"
+  coordinateSystem "EUN"
+  contactProperties [
+    ContactProperties {
+      forceDependentSlip [
+        0.01
+      ]
+    }
+  ]
+}
+Viewpoint {
+  orientation -0.14227703714158604 -0.9076336700742507 -0.39491564371363946 2.509522208622
+  position -0.2616335142384608 0.636317256851132 -0.2773933841404883
+  follow "e-puck"
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+  translation 0.14 0 0.205
+  floorSize 0.75 0.75
+  floorAppearance Parquetry {
+    type "light strip"
+  }
+  wallHeight 0.05
+}
+E-puck {
+  translation 0.21 0 0.09
+  rotation 0 1 0 3.141592653589793
+  controller "task_B_controller"
+}
+DEF Sheet Transform {
+  translation 0.14 0.0001 0.205
+  rotation 0 1 0 3.14
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColorMap ImageTexture {
+          url [
+            "textures/sheet_B_11_12.jpg"
+          ]
+        }
+        roughness 1
+        metalness 0
+      }
+      geometry Plane {
+        size 0.28 0.41
+      }
+      isPickable FALSE
+    }
+  ]
+}
