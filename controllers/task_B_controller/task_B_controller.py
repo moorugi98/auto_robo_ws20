@@ -35,8 +35,8 @@ motor_right.setVelocity(0.0)
 l = 53  # distance between two wheels in mm
 diam = 40  # diameter of wheels in mm
 dt = 10  # fix the time to integrate and change velocity
-START = [210, 90, 90]  # red, blue (allocentric in mm), angle in deg with 0 deg as in ex sheet
-END = [190, 250]
+START = [210, 90, 3.14 - math.pi/2]  # red, blue (allocentric in mm), angle in deg with 0 deg as in ex sheet
+END = [50, 60]
 
 x_diff = START[0]-END[0]
 y_diff = END[1]-START[1]
@@ -45,8 +45,7 @@ y_diff = END[1]-START[1]
 # 1) Compute the angle
 theta_tri = math.atan2(y_diff, x_diff)  # angle of triangle in rad w.r.t. positive zero x-axis
 # total rotation in rad
-dtheta = -math.radians(START[2]  # go to 0 deg
-                       ) + theta_tri  # right rotation in allocentric frame
+dtheta = -START[2] + theta_tri  # right rotation in allocentric frame
 if dtheta > math.pi:  # instead of turning 240 anticlw, turn 120 clw
     dtheta -= 2*math.pi
 if dtheta < -math.pi:
@@ -65,23 +64,19 @@ while accumulated < needed_dist:
         motor_right.setVelocity(-1)
         motor_left.setVelocity(1)
     robot.step(timestep)
-    accumulated = diam*math.pi * abs(encoder_right.getValue()) / (2*math.pi)  # distance traveled by wheels
+    accumulated = diam * abs(encoder_right.getValue()) / 2  # distance traveled by wheels
 
 
-# # 2) Move in a straight line
+# 3) Move in a straight line
 hypotenuse = math.hypot(x_diff, y_diff)  # don't travel until the end but only to mid of robot
 accumulated = 0
-old_encode = abs(encoder_right.getValue())
-old_encode_rad = (diam*math.pi *old_encode/ (2*math.pi))
+old_encode = encoder_right.getValue()
 motor_right.setVelocity(1)
 motor_left.setVelocity(1)
 
-while (accumulated) < hypotenuse:
+while accumulated < hypotenuse:
     robot.step(timestep)
-    a=encoder_right.getValue()
-    accumulated = diam*math.pi * (a)/ (2*math.pi)+old_encode_rad
-    #accumulated = diam*math.pi * (abs(encoder_right.getValue()) - old_encode) / (2*math.pi)  # distance traveled by wheels
-    #print(accumulated, hypotenuse)
+    accumulated = diam * (encoder_right.getValue() - old_encode) / 2
 
 # Stop the robot
 motor_right.setVelocity(0.0)
