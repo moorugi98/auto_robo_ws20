@@ -37,17 +37,14 @@ motor_right.setPosition(float('+inf'))
 motor_left.setVelocity(0.0)
 motor_right.setVelocity(0.0)
 
-# Start your code here!
-robot.step(timestep)
-print(prox_sensors[0].getValue())
-
+##### Start your code here!
 # parameters
 diam = 40
-num_trials = 10
-num_dist = 5
+num_trials = 10  # number to repeat each distance
+num_dist = 5  # number of different locations where distance should be measured
 max_pos = 140
 current_pos = 60
-interval = (max_pos - current_pos) / num_dist  # increment between each measure
+interval = (max_pos - current_pos) / (num_dist-1)  # increment between each measure
 results = np.zeros((num_trials, num_dist))
 
 # repeat num_trials measurements
@@ -60,23 +57,27 @@ for n in range(num_trials):
 
     # Vary the distance and measure from the sensor
     for pi, pos in enumerate(np.linspace(current_pos, max_pos, num_dist)):
+        # Stop and measure
+        motor_right.setVelocity(0.0)
+        motor_left.setVelocity(0.0)
+        robot.step(timestep)
+        results[n, pi] = prox_sensors[0].getValue()
+
         # Moving the robot
         accumulated = 0
         motor_right.setVelocity(v)
         motor_left.setVelocity(v)
         while accumulated < interval:
             robot.step(timestep)
-            accumulated = encoder_right.getValue() * diam / 2
-
-        # Stop and measure
-        motor_right.setVelocity(0.0)
-        motor_left.setVelocity(0.0)
-        results[n, pi] = prox_sensors[0].getValue()
+            accumulated = abs(encoder_right.getValue()) * diam / 2
+    results[n, -1] = prox_sensors[0].getValue()  # measure one last time
+    motor_right.setVelocity(0.0)
+    motor_left.setVelocity(0.0)
 
 
 # Plot
 mean = np.mean(results, axis=0)
 std = np.std(results, axis=0)
-plt.plot()
+plt.plot(np.linspace(current_pos, max_pos, num_dist), mean)
 plt.fill_between(range(results.shape[1]), mean-std, mean+std, alpha=0.5)
 plt.show()

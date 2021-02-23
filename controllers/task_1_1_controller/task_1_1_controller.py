@@ -47,7 +47,7 @@ while robot.step(timestep) != -1 and is_still_moving:
     dright = encoder_right.getValue() - old_right
     old_left = encoder_left.getValue()
     old_right = encoder_right.getValue()
-    print(dleft, dright)
+    #print(dleft, dright)
 
     if abs(abs(dleft) - abs(dright)) < epsilon:
         # Moving in straight line
@@ -78,27 +78,34 @@ while robot.step(timestep) != -1 and is_still_moving:
 
     # append to history
     trace.append(pos)
+    
+p=[]
+
+for point in trace:
+    #print(point)
+    p.append((point[0],point[1]))
     ####
-
-
+print(p)
 ### Plot your position here!
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 import matplotlib.patches as patches
 
 verts = [
-(100., 200.),  # left, bottom
-(100., 210.),  # left, top
-(110., 210.),  # right, top
-(110., 200.),  # right, bottom
-(100., 200.),  # ignored
+   (100., 200.),  # left, bottom
+   (100., 210.),  # left, top
+   (110., 210.),  # right, top
+   (110., 200.),  # right, bottom
+   (100., 200.),  # ignored
 ]
 
-path = Path(verts)
+path = Path(p[:10])
 
-fig, ax = plt.subplots()
-patch = patches.PathPatch(path, facecolor='white', lw=2)
-ax.add_patch(patch)
-ax.set_xlim(270, 10)
-ax.set_ylim(10, 400)
+# fig, ax = plt.subplots()
+# patch = patches.PathPatch(path, facecolor='white', lw=2)
+# ax.add_patch(patch)
+#ax.set_xlim(270,10)
+#ax.set_ylim(10, 400)
+#plt.plot(trace[:,0], trace[:,1], '->')
 plt.show()
+
