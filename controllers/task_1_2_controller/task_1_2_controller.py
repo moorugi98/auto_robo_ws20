@@ -3,8 +3,7 @@
 # You may need to import some classes of the controller module. Ex:
 #  from controller import Robot, Motor, DistanceSensor
 from controller import Robot
-import numpy as np
-import matplotlib.pyplot as plt
+import pickle
 
 # create the Robot instance.
 robot = Robot()
@@ -41,14 +40,16 @@ motor_right.setVelocity(0.0)
 # parameters
 diam = 40
 num_trials = 10  # number to repeat each distance
-num_dist = 5  # number of different locations where distance should be measured
+num_dist = 20  # number of different locations where distance should be measured
 max_pos = 140
-current_pos = 60
-interval = (max_pos - current_pos) / (num_dist-1)  # increment between each measure
-results = np.zeros((num_trials, num_dist))
+start_pos = 60
+interval = (max_pos - start_pos) / (num_dist-1)  # increment between each measure
+results = []
 
+old_encoder = 0  # to reset the encoder
 # repeat num_trials measurements
 for n in range(num_trials):
+    subres = []
     # for each trial, move back and forth repeatedly
     if n % 2 == 0:
         v = 1.0
@@ -56,12 +57,12 @@ for n in range(num_trials):
         v = -1.0
 
     # Vary the distance and measure from the sensor
-    for pi, pos in enumerate(np.linspace(current_pos, max_pos, num_dist)):
+    for _ in range(num_dist-1):
         # Stop and measure
         motor_right.setVelocity(0.0)
         motor_left.setVelocity(0.0)
-        robot.step(timestep)
-        results[n, pi] = prox_sensors[0].getValue()
+        [robot.step(timestep) for _ in range(50)]
+        subres.append(prox_sensors[0].getValue())
 
         # Moving the robot
         accumulated = 0
@@ -69,15 +70,19 @@ for n in range(num_trials):
         motor_left.setVelocity(v)
         while accumulated < interval:
             robot.step(timestep)
-            accumulated = abs(encoder_right.getValue()) * diam / 2
-    results[n, -1] = prox_sensors[0].getValue()  # measure one last time
-    motor_right.setVelocity(0.0)
-    motor_left.setVelocity(0.0)
+            accumulated = abs(abs(encoder_right.getValue()) - old_encoder) * diam / 2
+        old_encoder = abs(encoder_right.getValue())
+    subres.append(prox_sensors[0].getValue())   # measure one last time
+    if n % 2 == 1:
+        subres.reverse()
+    results.append(subres)
+motor_right.setVelocity(0.0)
+motor_left.setVelocity(0.0)
+
+# save data
+with open("test.txt", "wb") as fp:   # pickling
+    pickle.dump(results, fp)
 
 
-# Plot
-mean = np.mean(results, axis=0)
-std = np.std(results, axis=0)
-plt.plot(np.linspace(current_pos, max_pos, num_dist), mean)
-plt.fill_between(range(results.shape[1]), mean-std, mean+std, alpha=0.5)
-plt.show()
+
+
