@@ -22,65 +22,75 @@ encoder_right.enable(timestep)
 motor_left = robot.getDevice("left wheel motor")
 motor_right = robot.getDevice("right wheel motor")
 
-#Enable Velocity Control 
-motor_left.setPosition(float('+inf')) #This is required for velocity control
+# Enable Velocity Control
+motor_left.setPosition(float('+inf'))  # This is required for velocity control
 motor_right.setPosition(float('+inf'))
 
 motor_left.setVelocity(0.0)
 motor_right.setVelocity(0.0)
 
-# Start your code here!
+### Start your code here! ###
 
 # Set parameters
-l = 0.053  # distance between two wheels in m
-diam = 0.04  # diameter of wheels in m
+l = 53  # distance between two wheels in mm
+diam = 40  # diameter of wheels in mm
 dt = 10  # fix the time to integrate and change velocity
-START = [0.21, 0.09, 90]  # red, blue (allocentric in m), angle in deg with 0 deg as in ex sheet
-END = [0.07, 0.34]
+START = [210, 90, 90]  # red, blue (allocentric in mm), angle in deg with 0 deg as in ex sheet
+END = [70, 340]
 
-x_diff = START[0]-END[0]
+x_diff = START[0]-END[0]  # x-axis is inverted to what we use
 y_diff = END[1]-START[1]
 
-# 1) Rotate the robot
-theta_tri = math.atan2(y_diff, x_diff)  # angle of triangle in rad to positive zero x-axis
+
+# 1) Compute the angle
+theta_tri = math.atan2(y_diff, x_diff)  # angle of triangle in rad w.r.t. positive zero x-axis (sign is took care of)
 # total rotation in rad
 dtheta = -math.radians(START[2]  # go to 0 deg
-                       ) + theta_tri  # right rotation in allocentric frame
+                       ) + theta_tri  # right rotation in an allocentric frame
 
-# # compute velocity
-# v = (l * dtheta) / (2 * dt)
-# print(theta_tri, dtheta)
-# motor_right.setVelocity(v)
-# motor_left.setVelocity(-v)
-# [robot.step(timestep) for _ in range(dt)]
+# instead of turning 240 anti-clw, turn 120 clw
+if dtheta > math.pi:
+    dtheta -= 2*math.pi
+if dtheta < -math.pi:
+    dtheta += 2*math.pi
 
-# Use encoder to see if wheel traveled the right amount
-needed_dist = abs(l * dtheta*1000)  # 2pi (rad) : 2pi*l (circumference of the circle made by two wheels)
+
+# 2) Rotate the robot
+needed_dist = abs(l * dtheta / 2)  # full rotation = 2 * pi * (l/2), theta rotation = 2* pi * (l/2) * (theta/(2*pi))
 accumulated = 0  # distance covered until now
 
+# set arbitrary velocity and control turning direction
 if dtheta >= 0:  # anti-clockwise
-    motor_right.setVelocity(0.5)
-    motor_left.setVelocity(-0.5)
+    motor_right.setVelocity(1)
+    motor_left.setVelocity(-1)
 else:  # clockwise
-    motor_right.setVelocity(-0.5)
-    motor_left.setVelocity(0.5)
+    motor_right.setVelocity(-1)
+    motor_left.setVelocity(1)
 
+# turn the robot until wheel traveled the needed distance
+robot.step(timestep)
 while accumulated < needed_dist:
-    accumulated += encoder_right.getValue()  # distance traveled by wheels
+    # 2pi(diam/2): circumference of the wheel, enc_val/2pi: num_rotation of wheel, both multiplied
+    accumulated = diam * abs(encoder_right.getValue()) / 2
     robot.step(timestep)
-    print(dtheta, needed_dist, accumulated)
+# subtract to 'reset' the encoder later
+old_encode = abs(encoder_right.getValue())
 
-# # 2) Move in a straight line
-# hypotenuse = abs(x_diff * math.cos(theta_tri))
-# v = (hypotenuse * 2*math.pi) / (diam * dt)
-# motor_right.setVelocity(v)
-# motor_left.setVelocity(v)
-# print(v, hypotenuse)
-# [robot.step(timestep) for _ in range(dt)]
+
+# 3) Move in a straight line
+hypotenuse = math.hypot(x_diff, y_diff)  # length of the hypotenuse of a right triangle
+accumulated = 0
+
+motor_right.setVelocity(1)
+motor_left.setVelocity(1)
+
+robot.step(timestep)
+while accumulated < hypotenuse:
+    accumulated = diam * (abs(encoder_right.getValue()) - old_encode) / 2
+    robot.step(timestep)
 
 
 # Stop the robot
 motor_right.setVelocity(0.0)
 motor_left.setVelocity(0.0)
-
-
+print('angle, rotat dist, line dist', dtheta, needed_dist, hypotenuse, accumulated)
