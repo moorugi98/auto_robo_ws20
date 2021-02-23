@@ -4,6 +4,7 @@
 #  from controller import Robot, Motor, DistanceSensor
 from controller import Robot
 import random_movement_generator
+import math
 
 # create the Robot instance.
 robot = Robot()
@@ -19,9 +20,15 @@ encoder_left.enable(timestep)
 encoder_right.enable(timestep)
 
 #### Write your code here
+diam = 40
+l = 53
+epsilon = 0.00001
 
-
-
+old_left = 0
+old_right = 0
+pos = [190, 250, math.pi/2]  # initial position: x, z, angle
+trace = []  # keep the history
+trace.append(pos)
 ####
 
 #Initialize the Random Movement Generator
@@ -30,13 +37,68 @@ rmg = random_movement_generator.random_move_generator(robot)
 #Do not change anything about this!
 
 #Random Movmement Loop
-while robot.step(timestep) != -1  and is_still_moving:
+while robot.step(timestep) != -1 and is_still_moving:
     is_still_moving = rmg.move() #Update Speed Commands
-    
+
     #### Write your Code here
-    
-    
+
+    # treat each timestep as an individual segment
+    dleft = encoder_left.getValue() - old_left
+    dright = encoder_right.getValue() - old_right
+    old_left = encoder_left.getValue()
+    old_right = encoder_right.getValue()
+    print(dleft, dright)
+
+    if abs(abs(dleft) - abs(dright)) < epsilon:
+        # Moving in straight line
+        if abs(dleft - dright) < epsilon:
+            hypotenuse = dleft * diam / 2  # distance traveled by the robot
+            pos[0] -= hypotenuse * math.cos(pos[2])  # minus due to flipped x-axis
+            pos[1] += hypotenuse * math.sin(pos[2])
+
+        # Rotation on the spot
+        else:
+            # clw
+            if dleft > dright:
+                pos[2] -= dleft * diam / l  # l * dtheta /2 == enc * diam /2
+            # aclw
+            else:
+                pos[2] += dright * diam / l
+
+    # Circular arc
+    else:
+        r = ((dright + dleft) * l) / ((dright-dleft) * 2)  # eq 6
+        dtheta = (dright - dleft) * diam / (2 * l)  # eq 7
+        dx_ego = r * math.sin(dtheta)  # eq 9
+        dy_ego = r * (1 - math.cos(dtheta))  # eq 10
+
+        pos[0] -= dx_ego * math.cos(pos[2]) - dy_ego * math.sin(pos[2])  # eq 12, 13, 11
+        pos[1] += dx_ego * math.sin(pos[2]) + dy_ego * math.cos(pos[2])
+        pos[2] += dtheta
+
+    # append to history
+    trace.append(pos)
     ####
 
 
 ### Plot your position here!
+import matplotlib.pyplot as plt
+from matplotlib.path import Path
+import matplotlib.patches as patches
+
+verts = [
+(100., 200.),  # left, bottom
+(100., 210.),  # left, top
+(110., 210.),  # right, top
+(110., 200.),  # right, bottom
+(100., 200.),  # ignored
+]
+
+path = Path(verts)
+
+fig, ax = plt.subplots()
+patch = patches.PathPatch(path, facecolor='white', lw=2)
+ax.add_patch(patch)
+ax.set_xlim(270, 10)
+ax.set_ylim(10, 400)
+plt.show()
