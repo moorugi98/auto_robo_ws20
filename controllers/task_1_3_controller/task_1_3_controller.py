@@ -13,7 +13,7 @@ timestep = int(robot.getBasicTimeStep())
 
 # A list containing sensor handles
 prox_sensors = []
-for i in range(0,8):
+for i in [0,1,6,7]:  # TODO: only front 4 sensors should be enough?
     p_sensor = robot.getDevice("ps"+str(i))
     p_sensor.enable(timestep)
     prox_sensors.append(p_sensor)
@@ -46,83 +46,121 @@ motor_right.setVelocity(0.0)
 # Recalibrate and move to the target
 
 # Params
-goal_eps = 100  # error for reaching the target
 T = 1e5  # limit on timestep resource
-l = 53
-diam = 40
+l = 53  # distance between two wheels
+diam = 40  # diameter of the wheel
+r = 71/2  # radius of the robot
+
 START = [140, 50, math.pi - (math.pi/2)]
 END = [50, 360]
+target = END  # where the robot is currently trying to go, alternate between START and END
 pos = START  # current position of the robot
 trace = [pos]
+
 old_left = 0
 old_right = 0
 obstacle_found = False
-val_to_dist = lambda v: 70 * math.log(v) + 10  # convert sensor value to distance
-dist_eps = 10  # minimal distance allowed between robot and obstacle
+dist_eps = 20  # minimal distance allowed between robot and obstacle, error reaching the target
+threshold_sensor = 100  # anything bigger than threshold means that sensor doesn't sense anything
+
+
+def val_to_dist (v):
+    v = (v - 272.1955449905647) / (1391.974949347419 - 272.1955449905647)
+    if v > 0:
+        d = -3.561773132741485 * math.log(v) + 4.2668543946692274
+    else:  # value so small that distance is far away enough safely
+        d = threshold_sensor+10  # make sure its bigger than the threshold
+    return d
+
 
 robot.step(timestep)
-# Until convergence or divergence
-while math.hypot(pos[0] - END[0], END[1] - pos[1]) > goal_eps and len(trace) < T:
-    # Turn and go straight towards target when no obstacle found
-    while not obstacle_found:
-        x_diff = pos[0] - END[0]
-        y_diff = END[1] - pos[1]
-
-        # 1) Compute the angle between ROBOT and END
-        dtheta = -pos[2] + math.atan2(y_diff, x_diff)
-        if dtheta > math.pi:
-            dtheta -= 2*math.pi
-        if dtheta < -math.pi:
-            dtheta += 2*math.pi
-
-        # 2) Rotate the robot in its place
-        needed_dist = l/2 * abs(dtheta)
-        accumulated = 0
-        while (accumulated < needed_dist) and (not obstacle_found):
-            dright = abs(encoder_right.getValue() - old_right)  # angular distance change in single timestep
-            old_left = encoder_left.getValue()
-            old_right = encoder_right.getValue()
-            if dtheta >= 0:
-                motor_right.setVelocity(1)
-                motor_left.setVelocity(-1)
-                pos[2] += dright * diam / l  # TODO: eventually might have to control for cyclicity
-            else:
-                motor_right.setVelocity(-1)
-                motor_left.setVelocity(1)
-                pos[2] -= dright * diam / l
-            robot.step(timestep)
-            accumulated += diam * dright / 2
-            # Record pos
-            trace.append(pos)
-            # Detect obstacle
-            distances = [sensor.getValue() for sensor in prox_sensors]  # sensor values
-            distances = [val_to_dist(sval) for sval in distances]  # converted to distances
-            if min(distances) < dist_eps:
-                obstacle_found = True
-
-        # 3) Move in a straight line
-        hypotenuse = math.hypot(x_diff, y_diff)
-        accumulated = 0
+# TODO: 0) change Target when converged
+# 1) Until convergence or divergence
+while math.hypot(pos[0] - target[0], target[1] - pos[1]) > dist_eps and len(trace) < T:
+    # 2) Turn towards the target
+    # compute the angle needed in total
+    x_diff = pos[0] - target[0]
+    y_diff = target[1] - pos[1]
+    dtheta = -pos[2] + math.atan2(y_diff, x_diff)
+    if dtheta > math.pi:
+        dtheta -= 2 * math.pi
+    if dtheta < -math.pi:
+        dtheta += 2 * math.pi
+    # set velocity
+    if dtheta >= 0:
         motor_right.setVelocity(1)
+        motor_left.setVelocity(-1)
+    else:
+        motor_right.setVelocity(-1)
         motor_left.setVelocity(1)
-        while (accumulated < hypotenuse) and (not obstacle_found):
-            dright = abs(encoder_right.getValue() - old_right)
-            old_left = encoder_left.getValue()
-            old_right = encoder_right.getValue()
-            drobot = dright * diam / 2  # how much the robot has moved in a single timestep
-            accumulated += drobot
-            pos[0] -= drobot * math.cos(pos[2])
-            pos[1] += drobot * math.sin(pos[2])
-            robot.step(timestep)
-            # Record pos
-            trace.append(pos)
-            # Detect obstacle
-            distances = [sensor.getValue() for sensor in prox_sensors]  # sensor values
-            distances = [val_to_dist(sval) for sval in distances]  # converted to distances
-            if min(distances) < dist_eps:
-                obstacle_found = True
+    rotat_dist_needed = l / 2 * abs(dtheta)  # if robot turning accumulates until this, robot has fully turned to target
+    accum_rotation = 0  # absolute amount that has turned
+    while (accum_rotation < rotat_dist_needed) and (not obstacle_found):
+        # compute the distance moved by wheels
+        dright = encoder_right.getValue() - old_right  # angular distance change in single timestep
+        old_left = encoder_left.getValue()
+        old_right = encoder_right.getValue()
+        accum_rotation += diam * abs(dright) / 2
+        # update position
+        pos[2] += dright * diam / l  # TODO: eventually might have to control for cyclicity (modulo)
+        # make the movement
+        robot.step(timestep)
+        # Record pos
+        trace.append(pos)
+        # Detect obstacle
+        distances = [sensor.getValue() for sensor in prox_sensors]  # sensor values
+        distances = [val_to_dist(sval) for sval in distances]  # converted to distances
+        if min(distances) < dist_eps:  # If any sensor detect something
+            obstacle_found = True
 
-        # TODO: avoid obstacle
+
+    # 3) Move in a straight line
+    strat_dist_needed = math.hypot(x_diff, y_diff)
+    accum_straight = 0
+    motor_right.setVelocity(1.0)
+    motor_left.setVelocity(1.0)
+    while (accum_straight < strat_dist_needed) and (not obstacle_found):
+        # compute the distance moved by wheels
+        drobot = abs(encoder_right.getValue() - old_right) * diam / 2  # how much the robot has moved in a single timestep
+        old_left = encoder_left.getValue()
+        old_right = encoder_right.getValue()
+        accum_straight += drobot
+        # update position
+        pos[0] -= drobot * math.cos(pos[2])
+        pos[1] += drobot * math.sin(pos[2])
+        # make the movement
+        robot.step(timestep)
+        # Record pos
+        trace.append(pos)
+        # Detect obstacle
+        distances = [sensor.getValue() for sensor in prox_sensors]  # sensor values
+        distances = [val_to_dist(sval) for sval in distances]  # converted to distances
+        if min(distances) < dist_eps:
+            obstacle_found = True
+
+
+    # 4) Avoid the obstacle
+    while obstacle_found:
+        motor_right.setVelocity(0.0)
+        motor_left.setVelocity(0.0)
+        robot.step(timestep)
+        # Case 1: the wall is in front of the robot
+        # print(distances)
+        if all([d < threshold_sensor for d in distances]):
+            # compute the angle
+            istribase = 2*r*math.sin(math.radians(13))
+            b1 = val_to_dist(prox_sensors[0].getValue())
+            b2 = val_to_dist(prox_sensors[-1].getValue())
+            phi = math.pi/2 #- math.asin((b1-b2) / istribase)  # TODO: b1-b2 or b2-b1 depends on the sign
+
+            # turn that much
+
+            # go straight until case 2
+
+        # Case 2: the wall is to the side of the robot
+        # else:
+
+
 
 # Stop the robot
 motor_right.setVelocity(0.0)

@@ -47,16 +47,16 @@ motor_right.setVelocity(0.0)
 #     print(prox_sensors[0].getValue())
 
 # Stop the robot
-crit_val = 20  # mm, stop when robot get this much close to the obstacle
+crit_val = 10  # mm, stop when robot get this much close to the obstacle
 motor_left.setVelocity(1.0)
 motor_right.setVelocity(1.0)
 obstacle = False
 while not obstacle:
     robot.step(timestep)
     v = prox_sensors[0].getValue()
-    v = (v - 272.1955449905647) / (1391.974949347419 - 272.1955449905647)
-    if v > 0:
-        d = -3.561773132741485 * math.log(v) + 4.2668543946692274
+    v = (v - 272.1955449905647) / (1391.974949347419 - 272.1955449905647)  # normalize
+    if v > 0:  # otherwise log won't be defined
+        d = -3.561773132741485 * math.log(v) + 4.2668543946692274  # convert sensor to distance
         print(d)
         if d <= crit_val:
             obstacle = True

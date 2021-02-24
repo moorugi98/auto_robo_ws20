@@ -24,10 +24,6 @@ std = np.std(data, axis=1)
 
 dist_func = lambda v, a, b: a * np.log(v) + b
 val_func = lambda d, a, b: np.exp((d-b) / a)
-# print(xvals.shape, mean.shape)
-# optparam, _ = curve_fit(dist_func, xvals, mean)
-# a_hat = optparam[0]
-# b_hat = optparam[1]
 
 reg = LinearRegression().fit(np.log(mean).reshape(-1,1), dist)
 a_hat = reg.coef_[0]
@@ -36,8 +32,9 @@ print(a_hat, b_hat)
 
 # Plot
 plt.fill_between(dist, mean-std, mean+std, color='gray')
-plt.plot(dist, mean, 'black')
-plt.plot(dist, val_func(dist, a_hat, b_hat), 'green')
+plt.plot(dist, mean, 'black', label='data')
+plt.plot(dist, val_func(dist, a_hat, b_hat), 'green', label='fit')
+plt.legend()
 plt.xlabel('dist (mm)')
 plt.ylabel('value')
 plt.title('sensor reaction to distance')
