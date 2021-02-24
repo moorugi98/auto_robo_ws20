@@ -5,34 +5,39 @@ from scipy.optimize import curve_fit
 from sklearn.linear_model import LinearRegression
 
 # load data
-with open("test.txt", "rb") as fp:   # Unpickling
-    data = pickle.load(fp)
+data = np.loadtxt("measurement.txt")
+data = np.reshape(data, (4,10))  #  4 distance x 10 repeat
+
+# [0,1] normalize
+print(np.max(data), np.min(data))
+data = (data - np.min(data)) / (np.max(data) - np.min(data))
 
 # params
-num_dist = 20
-obstacle = 190
-max_pos = 140
-start_pos = 60
+num_dist = 4
+max_dist = 19  # in mm
+min_dist = 4
+dist = np.linspace(min_dist, max_dist, num_dist)  # distance between obstacle and robot
 
 # estimate
-mean = np.mean(data, axis=0)
-std = np.std(data, axis=0)
-xvals = np.linspace(obstacle-start_pos, obstacle-max_pos, num_dist)
+mean = np.mean(data, axis=1)
+std = np.std(data, axis=1)
 
-estim = lambda x, a, b: -a * np.log(x) - b
-print(xvals.shape, mean.shape)
-optparam, _ = curve_fit(estim, xvals, mean)
-a_hat = optparam[0]
-b_hat = optparam[1]
+dist_func = lambda v, a, b: a * np.log(v) + b
+val_func = lambda d, a, b: np.exp((d-b) / a)
+# print(xvals.shape, mean.shape)
+# optparam, _ = curve_fit(dist_func, xvals, mean)
+# a_hat = optparam[0]
+# b_hat = optparam[1]
+
+reg = LinearRegression().fit(np.log(mean).reshape(-1,1), dist)
+a_hat = reg.coef_[0]
+b_hat = reg.intercept_
 print(a_hat, b_hat)
 
-reg = LinearRegression().fit(np.log(xvals).reshape(-1,1), mean)
-print(reg.coef_, reg.intercept_)
-
 # Plot
-plt.fill_between(xvals, mean-std, mean+std, color='gray')
-plt.plot(xvals, mean, 'black')
-plt.plot(xvals, estim(mean, -a_hat, -b_hat), 'green')
+plt.fill_between(dist, mean-std, mean+std, color='gray')
+plt.plot(dist, mean, 'black')
+plt.plot(dist, val_func(dist, a_hat, b_hat), 'green')
 plt.xlabel('dist (mm)')
 plt.ylabel('value')
 plt.title('sensor reaction to distance')

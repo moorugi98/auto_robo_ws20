@@ -33,7 +33,7 @@ RectangleArena {
 E-puck {
   translation 0.05 0 0.06
   rotation 0 1 0 3.141592653589793
-  controller "<extern>"
+  controller "task_1_2_controller"
 }
 DEF Sheet Transform {
   translation 0.14 0.0001 0.205
