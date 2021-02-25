@@ -117,21 +117,24 @@ motor_right.setVelocity(0.0)
 T = 1e5  # limit on timestep resource
 l = 53  # distance between two wheels
 diam = 40  # diameter of the wheel
-r = 71/2  # radius of the robot
+num_rep = 5
 
 START = [230, 50, math.pi - (math.pi/2)]
 END = [50, 360]
 target = deepcopy(END)  # where the robot is currently trying to go, alternate between START and END
 pos = deepcopy(START)  # current position of the robot
-trace = [deepcopy(pos)]
+trace = [pos]
 
 old_right = 0
 obstacle_found = False
-dist_eps = 30  # minimal distance allowed between robot and obstacle, error reaching the target
-threshold_sensor = 100  # anything bigger than threshold means that sensor doesn't sense anything
+dist_eps = 20  # minimal distance allowed between robot and obstacle, error reaching the target
+threshold_sensor = 50  # anything bigger than threshold means that sensor doesn't sense anything
 
 
 def val_to_dist(v):
+    '''
+    translate the sensor value to the distance
+    '''
     v = (v - 272.1955449905647) / (1391.974949347419 - 272.1955449905647)
     if v > 0:
         d = -3.561773132741485 * math.log(v) + 4.2668543946692274
@@ -141,12 +144,18 @@ def val_to_dist(v):
 
 
 def get_distance():
+    '''
+    get distances for all sensors
+    '''
     distances = [sensor.getValue() for sensor in prox_sensors]  # sensor values
     distances = [val_to_dist(sval) for sval in distances]  # converted to distances
     return distances
 
 
 def move_turn():
+    '''
+    make a turn on the spot and update position
+    '''
     global old_right
     robot.step(timestep)
     dright = encoder_right.getValue() - old_right
@@ -159,6 +168,9 @@ def move_turn():
 
 
 def move_straight():
+    '''
+    go straight and update position
+    '''
     global old_right
     robot.step(timestep)
     drobot = (encoder_right.getValue() - old_right) * diam / 2
@@ -172,9 +184,9 @@ def move_straight():
 
 
 robot.step(timestep)
-# 0) change Target when converged
+# 0) change target when converged
 counter = 0
-while counter < 5:
+while counter < num_rep:
     if counter % 2 == 0:
         target = deepcopy(END)
     else:

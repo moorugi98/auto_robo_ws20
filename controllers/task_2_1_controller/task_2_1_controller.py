@@ -30,18 +30,15 @@ motor_right.setPosition(float('+inf'))
 motor_left.setVelocity(0.0)
 motor_right.setVelocity(0.0)
 
+
 # Start your code here!
 l = 53
 diam = 40
 pos = [210, 90, math.pi - (math.pi/2)]
-target = [190, 250]
+target = [70, 340]
 lamda = 0.1  # robot's turning speed
 psi = math.atan2(target[1] - pos[1], pos[0] - target[0])  # angle to target w.r.t. 0
-print(psi)
-epsilon = 5  # error margin
-old_right = 0
-old_left = 0
-
+epsilon = 10  # error margin
 
 path = robot_path(pos)
 
@@ -52,7 +49,7 @@ while math.hypot(target[1]-pos[1], pos[0]-target[0]) > epsilon:
     motor_left.setVelocity(1-v)
     motor_right.setVelocity(1+v)
     pos = path.step(encoder_left, encoder_right)
-    
+
 
 motor_left.setVelocity(0.0)
 motor_right.setVelocity(0.0)
