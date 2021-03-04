@@ -35,10 +35,11 @@ motor_right.setVelocity(0.0)
 l = 53  # distance between two wheels in mm
 diam = 40  # diameter of wheels in mm
 dt = 10  # fix the time to integrate and change velocity
-START = [210, 90, 3.14 - math.pi/2]  # red, blue (allocentric in mm), angle in deg with 0 deg as in ex sheet
+START = [210, 90,  # x,z in mm, angle in rad as given in the webot interface
+         3.14 - math.pi/2]  # -pi/2 controls for the difference between webot and convention (0 deg at positive x-axis)
 END = [50, 60]
 
-x_diff = START[0]-END[0]
+x_diff = START[0]-END[0]  # x-coord is flipped
 y_diff = END[1]-START[1]
 
 
@@ -46,7 +47,8 @@ y_diff = END[1]-START[1]
 theta_tri = math.atan2(y_diff, x_diff)  # angle of triangle in rad w.r.t. positive zero x-axis
 # total rotation in rad
 dtheta = -START[2] + theta_tri  # right rotation in allocentric frame
-if dtheta > math.pi:  # instead of turning 240 anticlw, turn 120 clw
+# revert turning direction if inefficient
+if dtheta > math.pi:
     dtheta -= 2*math.pi
 if dtheta < -math.pi:
     dtheta += 2*math.pi
@@ -68,7 +70,7 @@ while accumulated < needed_dist:
 
 
 # 3) Move in a straight line
-hypotenuse = math.hypot(x_diff, y_diff)  # don't travel until the end but only to mid of robot
+hypotenuse = math.hypot(x_diff, y_diff)  # don't travel until the end but only to center of robot
 accumulated = 0
 old_encode = encoder_right.getValue()
 motor_right.setVelocity(1)

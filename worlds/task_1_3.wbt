@@ -14,8 +14,8 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation 0.999074949122694 -0.032247482784894664 -0.028449005070902835 4.836470669429864
-  position 0.18851402592837566 0.48387805258502214 0.15585996374730005
+  orientation 0.9999993943676637 -0.0007537327991542646 -0.0008019670648151025 4.71270245812243
+  position 0.04979065035022862 0.40867002764050625 0.04878330362608134
   follow "e-puck"
 }
 TexturedBackground {
@@ -31,8 +31,8 @@ RectangleArena {
   wallHeight 0.05
 }
 E-puck {
-  translation 0.23 0 0.05
-  rotation 0 1 0 3.141592653589793
+  translation 0.05 0 0.05
+  rotation 0 1 0 2
   controller "task_1_3_controller"
 }
 DEF Sheet Transform {
@@ -57,7 +57,7 @@ DEF Sheet Transform {
   ]
 }
 DEF Obstacle Solid {
-  translation 0.09 0 0.2
+  translation 0.05 0 0.2
   children [
     DEF Wall_Shape Shape {
       appearance PBRAppearance {
@@ -69,5 +69,21 @@ DEF Obstacle Solid {
       }
     }
   ]
+  boundingObject USE Wall_Shape
+}
+DEF Obstacle Solid {
+  translation 0.23 0 0.2
+  children [
+    DEF Wall_Shape Shape {
+      appearance PBRAppearance {
+        baseColor 1 0 0
+        metalness 0
+      }
+      geometry Box {
+        size 0.1 0.1 0.02
+      }
+    }
+  ]
+  name "solid(1)"
   boundingObject USE Wall_Shape
 }

@@ -5,6 +5,7 @@
 from controller import Robot
 import math
 from odometry import robot_path
+import pickle
 
 # create the Robot instance.
 robot = Robot()
@@ -36,20 +37,25 @@ l = 53
 diam = 40
 pos = [210, 90, math.pi - (math.pi/2)]
 target = [70, 340]
-lamda = 0.1  # robot's turning speed
+lamda = 10  # robot's turning speed
 psi = math.atan2(target[1] - pos[1], pos[0] - target[0])  # angle to target w.r.t. 0
 epsilon = 10  # error margin
 
 path = robot_path(pos)
-
-while math.hypot(target[1]-pos[1], pos[0]-target[0]) > epsilon:
+counter = 0
+while math.hypot(target[1]-pos[1], pos[0]-target[0]) > epsilon and counter < 1e3:
+    counter += 1
+    print(counter)
     robot.step(timestep)
-    d_pi = - lamda * math.sin(pos[2] - psi)  # how much the robot should turn in a single timestep
-    v = l * d_pi / 2  # motor velocity at current time
-    motor_left.setVelocity(1-v)
+    d_pi = - lamda * math.sin(pos[2] - psi)  # how much the robot should turn in a single timestep  (eq 17)
+    v = l * d_pi / 2  # motor velocity at current time  (eq 3,5)
+    motor_left.setVelocity(1-v)  # move forward and turn at the same time
     motor_right.setVelocity(1+v)
-    pos = path.step(encoder_left, encoder_right)
-
+    pos = path.step(encoder_left, encoder_right)  # update the robot position
 
 motor_left.setVelocity(0.0)
 motor_right.setVelocity(0.0)
+
+trace = path.trace
+with open('trace_lamda={}.pickle'.format(lamda), 'wb') as f:
+    pickle.dump(trace, f)

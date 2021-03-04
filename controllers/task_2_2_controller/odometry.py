@@ -4,12 +4,12 @@
 #  from controller import Robot, Motor, DistanceSensor
 from controller import Robot
 import math
+from copy import deepcopy
 
 
 class robot_path:
 
     def __init__(self, position_initial):
-
         self.diam = 40
         self.l = 53
         self. epsilon = 0.00001
@@ -18,10 +18,8 @@ class robot_path:
         self.old_right = 0
         
         self.trace = []  # keep the history
-        self.x=[]
-        self. y=[]
-        self.pos=position_initial #initial position: x, z, angle
-        self.trace.append(self.pos)
+        self.pos = position_initial  # initial position: x, z, angle
+        self.trace.append(deepcopy(self.pos))
         
     def step(self, encoder_left, encoder_right):
         # treat each timestep as an individual segment
@@ -29,8 +27,7 @@ class robot_path:
         self.dright = encoder_right.getValue() - self.old_right
         self.old_left = encoder_left.getValue()
         self.old_right = encoder_right.getValue()
-        #print(dleft, dright)
-    
+
         if abs(abs(self.dleft) - abs(self.dright)) < self.epsilon:
             # Moving in straight line
             if abs(self.dleft - self.dright) < self.epsilon:
@@ -50,6 +47,7 @@ class robot_path:
         # Circular arc
         else:
             r = ((self.dright + self.dleft) * self.l) / ((self.dright-self.dleft) * 2)  # eq 6
+
             dtheta = (self.dright - self.dleft) * self.diam / (2 * self.l)  # eq 7
             dx_ego = r * math.sin(dtheta)  # eq 9
             dy_ego = r * (1 - math.cos(dtheta))  # eq 10
@@ -59,9 +57,7 @@ class robot_path:
             self.pos[2] += dtheta
     
         # append to history
-        self.trace.append(self.pos)
-        self.x.append(self.pos[0])
-        self.y.append(self.pos[1])
+        self.trace.append(deepcopy(self.pos))
         return self.pos
         
         
@@ -72,7 +68,7 @@ class robot_path:
         plt.axes().set_aspect('equal')
         plt.xlim(470,-200)
         plt.ylim(-130,540)
-        plt.plot(self.x,self.y, '-')
+        plt.plot(self.trace[:,0], self.trace[:,1], '-')
         plt.show()
         
         
